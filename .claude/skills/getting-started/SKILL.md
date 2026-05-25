@@ -49,6 +49,16 @@ uvx marimo@latest edit --sandbox notebooks/nb16_ss_target_consistency.py
 
 `uvx marimo@latest --sandbox` runs notebooks with their PEP 723 inline dependencies in an isolated env, independent of the pixi env.
 
+**Remote access (SSH):** bind to all interfaces and pick a free port:
+
+```bash
+uvx marimo@latest edit --sandbox --host 0.0.0.0 --port 3719 notebooks/nb16_ss_target_consistency.py
+```
+
+Then open `http://<hostname>:3719?access_token=<token>` in your browser (the token is printed at launch). To skip the token: add `--token-password ''`.
+
+If uv panics with "Too many open files", raise the fd limit first: `ulimit -n 65536`. This is a known uv issue on systems with a low default limit (1024).
+
 4. Install third-party agent skills (marimo notebook authoring, paper implementation, etc.):
 
 ```bash
