@@ -13,6 +13,9 @@ set dotenv-load := true
 # SKIP THE PIPELINE (use pre-computed results):
 #   just get-results          # Download all results from public S3
 #
+# ADMIN (refresh from original sources):
+#   just get-from-sources     # Download from original URLs (Pooch, hash-verified)
+#
 # All data is on a public S3 bucket (no credentials needed).
 # =============================================================================
 
@@ -72,6 +75,12 @@ get-results:
     @echo "Syncing processed/..."
     {{RCLONE_SYNC}} ":s3:{{S3_BUCKET}}/{{S3_PROJECT_PATH}}/processed/" {{PROCESSED_DIR}}/
     @echo "Done!"
+
+# Download from original sources (ChEMBL, CellPainting Gallery, Zenodo, etc.)
+# Hash-verified via Pooch. Equivalent to get-inputs but with full URL provenance.
+get-from-sources:
+    @echo "Downloading from original sources (Pooch, hash-verified)..."
+    @pixi run python -c "import sys; sys.path.insert(0, 'notebooks'); from nb43_ss_download_data import download_all; download_all()"
 
 # Download specific results subdirectory
 get-results-for run_path:
