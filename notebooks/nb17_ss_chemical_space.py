@@ -2,18 +2,18 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "duckdb",
-#     "loguru",
-#     "matplotlib",
-#     "numpy",
-#     "pandas",
+#     "duckdb==1.5.3",
+#     "loguru==0.7.3",
+#     "matplotlib==3.10.9",
+#     "numpy==2.4.6",
+#     "pandas==3.0.3",
 #     "python-dotenv",
-#     "scanpy",
-#     "scikit-learn",
-#     "scipy",
+#     "scanpy==1.12.1",
+#     "scikit-learn==1.8.0",
+#     "scipy==1.17.1",
 # ]
-# NOTE: Run with pixi run -e cheminformatics marimo edit/run
-# (rdkit is conda-only and comes from the pixi env)
+# # NOTE: Run with pixi run -e cheminformatics marimo edit/run
+# # (rdkit is conda-only and comes from the pixi env)
 # ///
 
 import marimo

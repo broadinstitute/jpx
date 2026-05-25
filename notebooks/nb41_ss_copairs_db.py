@@ -2,11 +2,11 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "duckdb==1.5.2",
+#     "duckdb==1.5.3",
 #     "omegaconf==2.3.0",
 #     "pandas==3.0.3",
 #     "python-dotenv",
-#     "loguru",
+#     "loguru==0.7.3",
 # ]
 # ///
 

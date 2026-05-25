@@ -2,16 +2,16 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "adjustText",
-#     "anndata",
-#     "duckdb",
-#     "loguru",
-#     "matplotlib",
-#     "numpy",
-#     "pandas",
+#     "adjusttext==1.3.0",
+#     "anndata==0.12.16",
+#     "duckdb==1.5.3",
+#     "loguru==0.7.3",
+#     "matplotlib==3.10.9",
+#     "numpy==2.4.6",
+#     "pandas==2.3.3",
 #     "python-dotenv",
-#     "scanpy",
-#     "scipy",
+#     "scanpy==1.12.1",
+#     "scipy==1.17.1",
 # ]
 # ///
 

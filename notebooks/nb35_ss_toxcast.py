@@ -2,11 +2,11 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "polars==1.30.0",
+#     "polars==1.41.0",
 #     "pandas==3.0.3",
-#     "openpyxl",
+#     "openpyxl==3.1.5",
 #     "python-dotenv",
-#     "loguru",
+#     "loguru==0.7.3",
 # ]
 # ///
 

@@ -2,8 +2,8 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "pandas",
-#     "openpyxl",
+#     "pandas==3.0.3",
+#     "openpyxl==3.1.5",
 # ]
 # ///
 

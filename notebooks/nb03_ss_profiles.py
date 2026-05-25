@@ -3,8 +3,8 @@
 # dependencies = [
 #     "marimo",
 #     "anndata==0.12.16",
-#     "duckdb==1.5.2",
-#     "pandas",
+#     "duckdb==1.5.3",
+#     "pandas==2.3.3",
 #     "python-dotenv",
 #     "loguru==0.7.3",
 # ]

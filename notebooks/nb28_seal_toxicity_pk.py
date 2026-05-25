@@ -2,7 +2,7 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "anndata",
+#     "anndata==0.12.16",
 #     "duckdb==1.5.3",
 #     "loguru==0.7.3",
 #     "matplotlib==3.10.9",

@@ -2,19 +2,19 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "duckdb",
-#     "loguru",
-#     "matplotlib",
-#     "numpy",
-#     "pandas",
+#     "duckdb==1.5.3",
+#     "loguru==0.7.3",
+#     "matplotlib==3.10.9",
+#     "numpy==2.4.6",
+#     "pandas==3.0.3",
 #     "python-dotenv",
-#     "scikit-learn",
-#     "scipy",
-#     "xgboost",
+#     "scikit-learn==1.8.0",
+#     "scipy==1.17.1",
+#     "xgboost==3.2.0",
 # ]
-# NOTE: Run with pixi run -e deepchem marimo edit/run
-# rdkit and deepchem come from the pixi deepchem env (conda-only).
-# Do NOT add them to PEP 723 deps.
+# # NOTE: Run with pixi run -e deepchem marimo edit/run
+# # rdkit and deepchem come from the pixi deepchem env (conda-only).
+# # Do NOT add them to PEP 723 deps.
 # ///
 
 # ruff: noqa: N803, N806  # Allow uppercase X, X_train, X_test (ML convention)

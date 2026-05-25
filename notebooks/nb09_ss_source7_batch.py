@@ -5,9 +5,9 @@
 #     "anndata==0.12.16",
 #     "matplotlib==3.10.9",
 #     "numpy==2.4.6",
-#     "pandas==3.0.3",
+#     "pandas==2.3.3",
 #     "python-dotenv",
-#     "loguru",
+#     "loguru==0.7.3",
 # ]
 # ///
 

@@ -88,12 +88,38 @@ get-results-for run_path:
     @mkdir -p {{PROCESSED_DIR}}/{{run_path}}
     {{RCLONE_SYNC}} ":s3:{{S3_BUCKET}}/{{S3_PROJECT_PATH}}/processed/{{run_path}}/" {{PROCESSED_DIR}}/{{run_path}}/
 
+# ==================== NOTEBOOK DEPS ====================
+
+# Pin PEP 723 inline deps to resolved versions (marimo and python-dotenv stay unpinned)
+lock-notebooks *args:
+    python3 scripts/lock_notebooks.py {{args}} notebooks/nb*.py
+
+# Strip version pins from PEP 723 inline deps
+unlock-notebooks *args:
+    python3 scripts/lock_notebooks.py --unlock {{args}} notebooks/nb*.py
+
+# ==================== LINTING ====================
+
+# Lint and format check (use `just lint --fix` to auto-fix)
+lint *args:
+    pixi run ruff check {{args}} notebooks/ scripts/ workflow.py run_task.py
+    pixi run ruff format --check notebooks/ scripts/ workflow.py run_task.py
+
+# Auto-format all Python files
+fmt:
+    pixi run ruff format notebooks/ scripts/ workflow.py run_task.py
+    pixi run ruff check --fix notebooks/ scripts/ workflow.py run_task.py
+
 # ==================== UTILITIES ====================
 
 # Delete all pipeline outputs (interim + processed). Inputs are untouched.
 [confirm("This will delete all files in data/interim/ and data/processed/. Continue?")]
 clean:
-    rm -rf {{INTERIM_DIR}}/* {{PROCESSED_DIR}}/*
+    @if command -v trash >/dev/null 2>&1; then \
+        trash {{INTERIM_DIR}}/* {{PROCESSED_DIR}}/*; \
+    else \
+        rm -rf {{INTERIM_DIR}}/* {{PROCESSED_DIR}}/*; \
+    fi
     @echo "Done! (data/external/ and data/raw/ are untouched)"
 
 # See pipeline status (redun execution log)

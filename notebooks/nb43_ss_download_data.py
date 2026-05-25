@@ -2,10 +2,10 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "pooch>=1.8.2,<2",
-#     "pandas>=2.2",
-#     "requests>=2.31",
-#     "loguru>=0.7",
+#     "pooch==1.9.0",
+#     "pandas==3.0.3",
+#     "requests==2.34.2",
+#     "loguru==0.7.3",
 #     "python-dotenv>=1.0",
 # ]
 # ///

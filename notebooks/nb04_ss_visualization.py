@@ -7,10 +7,10 @@
 #     "pandas==3.0.3",
 #     "scipy==1.17.1",
 #     "seaborn==0.13.2",
-#     "scikit-learn",
+#     "scikit-learn==1.8.0",
 #     "scanpy==1.12.1",
 #     "python-dotenv",
-#     "loguru",
+#     "loguru==0.7.3",
 # ]
 # ///
 

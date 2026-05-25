@@ -2,12 +2,12 @@
 # requires-python = ">=3.12"
 # dependencies = [
 #     "marimo",
-#     "anndata",
-#     "numpy",
-#     "pandas",
-#     "scanpy",
+#     "anndata==0.12.16",
+#     "numpy==2.4.6",
+#     "pandas==2.3.3",
+#     "scanpy==1.12.1",
 #     "python-dotenv",
-#     "loguru",
+#     "loguru==0.7.3",
 # ]
 # ///
 
