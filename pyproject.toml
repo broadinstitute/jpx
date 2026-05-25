@@ -1,0 +1,228 @@
+[project]
+authors = [{ name = "Shantanu Singh", email = "shsingh@broadinstitute.org" }]
+dependencies = [
+    "pandas>=2.3.3,<3",
+    "loguru>=0.7.3,<0.8",
+    "anndata>=0.12.7,<0.13",
+    "scanpy>=1.11.5,<2",
+    "openpyxl>=3.1.5,<4",
+    "pooch>=1.8.2,<2",
+    "python-dotenv>=1.2.1,<2",
+    "awscli>=1.44.15,<2",
+    "pre-commit>=4.5.1,<5",
+    "upsetplot>=0.9.0,<0.10",
+    "rust-just>=1.46.0,<2",
+    "adjusttext>=1.3.0,<2",
+    "plotly>=6.0.0,<7",
+    "pycirclize>=1.7.0,<2",
+    "redun>=0.44.1,<0.45",
+    "marimo>=0.13",
+]
+name = "jpx"
+requires-python = ">= 3.11"
+version = "0.1.0"
+
+
+[tool.pixi.workspace]
+channels = ["rapidsai", "nvidia", "conda-forge"]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.pypi-dependencies]
+copairs-runner = { git = "https://github.com/broadinstitute/monorepo.git", subdirectory = "libs/copairs_runner", rev = "8c6e04c553861744a355a3d9b6c4dcbe7aa7e399" }
+
+[tool.pixi.pypi-options.dependency-overrides]
+copairs = { git = "https://github.com/shntnu/copairs.git", rev = "897a016" }
+
+[tool.pixi.tasks]
+
+[tool.pixi.dependencies]
+python = "3.12.*"
+pyright = ">=1.1.408,<2"
+nodejs = ">=18"
+duckdb = ">=1.5.2,<2"
+matplotlib = ">=3.10.9,<4"
+numpy = ">=2.4.6,<3"
+imagemagick = ">=7"
+
+# Feature: RAPIDS GPU workloads (numpy 2.x)
+# jump-smiles requires numpy<2, so we need a separate environment
+# Uses no-default-feature to avoid inheriting project dependencies
+# Linux-only: RAPIDS requires NVIDIA CUDA
+[tool.pixi.feature.rapids]
+platforms = ["linux-64"]
+
+[tool.pixi.feature.rapids.dependencies]
+python = "3.12.*"
+rapids = "25.02.*"
+cuda-version = "12.*"
+gcc_linux-64 = "12.*"
+gxx_linux-64 = "12.*"
+cudnn = "*"
+numpy = ">=2"
+cupy = "*"
+pandas = "*"
+scanpy = "*"
+anndata = "*"
+matplotlib = "*"
+marimo = "*"
+typer = "*"
+loguru = "*"
+duckdb = "*"
+python-dotenv = "*"
+scipy = "*"
+seaborn = "*"
+
+[tool.pixi.feature.rapids.pypi-dependencies]
+rapids-singlecell = "*"
+copairs-runner = { git = "https://github.com/broadinstitute/monorepo.git", subdirectory = "libs/copairs_runner", rev = "8c6e04c553861744a355a3d9b6c4dcbe7aa7e399" }
+
+[tool.pixi.feature.rapids.activation]
+env = { CUDAHOSTCXX = "x86_64-conda-linux-gnu-g++", CC = "x86_64-conda-linux-gnu-gcc", CXX = "x86_64-conda-linux-gnu-g++" }
+
+[tool.pixi.feature.marimo]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.feature.marimo.dependencies]
+python = "3.12.*"
+marimo = "*"
+pandas = "*"
+duckdb = "*"
+matplotlib = "*"
+loguru = "*"
+python-dotenv = "*"
+
+# Feature: jump-smiles library (requires numpy<2)
+# Used by: chemical_probes.py
+[tool.pixi.feature.jump-smiles]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.feature.jump-smiles.dependencies]
+python = "3.12.*"
+numpy = "<2"
+pandas = ">=2.2,<3"
+openpyxl = "*"
+typer = "*"
+loguru = "*"
+python-dotenv = "*"
+marimo = ">=0.13"
+
+[tool.pixi.feature.jump-smiles.pypi-dependencies]
+jump-smiles = { git = "https://github.com/broadinstitute/monorepo.git", subdirectory = "libs/jump_smiles", rev = "57a077c842ffe7be7b0fb7b80d5dea8ea5a73aaa" }
+
+# Feature: Cheminformatics for chemical space analysis
+# Used by: nb17_ss_chemical_space.py, nb18_ss_fingerprint_metrics.py
+[tool.pixi.feature.cheminformatics]
+platforms = ["linux-64", "osx-arm64"]
+
+[tool.pixi.feature.cheminformatics.dependencies]
+python = "3.12.*"
+rdkit = "*"
+numpy = "*"
+pandas = "*"
+matplotlib = "*"
+seaborn = "*"
+scanpy = "*"
+anndata = "*"
+marimo = "*"
+scikit-learn = "*"
+scipy = "*"
+typer = "*"
+loguru = "*"
+duckdb = "*"
+pyarrow = "*"
+python-dotenv = "*"
+joblib = "*"
+openpyxl = "*"
+xlrd = ">=2.0.1,<3"
+
+[tool.pixi.feature.cheminformatics.pypi-dependencies]
+xgboost = "*"
+
+# Feature: ChemBERTa embeddings with CUDA support
+# Used by: compound_properties.py chemberta command
+# Linux-only: Requires NVIDIA CUDA for GPU acceleration
+[tool.pixi.feature.chemberta]
+platforms = ["linux-64"]
+channels = ["conda-forge", "pytorch", "nvidia"]
+
+[tool.pixi.feature.chemberta.dependencies]
+python = "3.12.*"
+rdkit = "*"
+numpy = "*"
+pandas = "*"
+marimo = "*"
+typer = "*"
+loguru = "*"
+duckdb = "*"
+pyarrow = "*"
+python-dotenv = "*"
+pytorch = { version = "*", channel = "pytorch" }
+pytorch-cuda = { version = "12.4.*", channel = "pytorch" }
+
+[tool.pixi.feature.chemberta.pypi-dependencies]
+# Pin transformers <4.50 to avoid torch>=2.6 requirement (CVE-2025-32434 check)
+# PyTorch 2.6+ not yet available on conda pytorch channel
+transformers = ">=4.30,<4.50"
+
+# Feature: DeepChem for molecular machine learning with GPU support
+# Used by: nb21_ss_phenotype_prediction.py (scaffold splitting, cuML RandomForest)
+# Linux-only: DeepChem requires TensorFlow which isn't available on osx-arm64
+[tool.pixi.feature.deepchem]
+platforms = ["linux-64"]
+
+[tool.pixi.feature.deepchem.dependencies]
+python = "3.12.*"
+rdkit = "*"
+numpy = ">=2"
+pandas = "*"
+matplotlib = "*"
+seaborn = "*"
+scikit-learn = "*"
+marimo = "*"
+typer = "*"
+loguru = "*"
+duckdb = "*"
+pyarrow = "*"
+python-dotenv = "*"
+joblib = "*"
+# GPU support via RAPIDS
+rapids = "25.02.*"
+cuda-version = "12.*"
+cudnn = "*"
+cupy = "*"
+
+[tool.pixi.feature.deepchem.pypi-dependencies]
+deepchem = "*"
+
+[tool.pixi.environments]
+default = { solve-group = "default" }
+lint = { features = ["lint"], solve-group = "default" }
+test = { features = ["test"], solve-group = "default" }
+rapids = { features = ["rapids"], no-default-feature = true }
+marimo = { features = ["marimo"], no-default-feature = true }
+jump-smiles = { features = ["jump-smiles"], no-default-feature = true }
+cheminformatics = { features = ["cheminformatics"], no-default-feature = true }
+chemberta = { features = ["chemberta"], no-default-feature = true }
+deepchem = { features = ["deepchem"], no-default-feature = true }
+
+[dependency-groups]
+lint = ["ruff>=0.12.0", "pre-commit>=4.2.0"]
+test = ["pytest>=8.4.0"]
+
+[tool.ruff]
+line-length = 120
+src = ["notebooks"]
+target-version = "py312"
+include = ["pyproject.toml", "notebooks/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "W"]
+ignore = [
+    "E501", # Line too long (handled by formatter)
+    "N803", # Argument name should be lowercase (ML convention: X, Y for matrices)
+    "N806", # Variable in function should be lowercase (ML convention: X_train, X_test)
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

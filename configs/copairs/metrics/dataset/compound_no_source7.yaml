@@ -1,0 +1,3 @@
+name: compound_no_source7
+path: "data/raw/profiles/compound_no_source7.parquet"
+description: "Compound dataset excluding source 7"

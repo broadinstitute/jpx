@@ -1,0 +1,7 @@
+# Harmony batch correction parameters (coarse: Metadata_Source)
+# 10 sources — compare against batch_correction.yaml (122 batches) to assess
+# whether fine-grained batch correction improves downstream results.
+batch_key: Metadata_Source
+n_clusters: 300
+max_iter_harmony: 50
+n_pcs: 200

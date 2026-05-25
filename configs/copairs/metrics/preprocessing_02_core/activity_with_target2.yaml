@@ -1,0 +1,18 @@
+name: activity_with_target2
+steps:
+  # Remove features with NaN values
+  - type: remove_nan_features
+    params:
+
+  # Add negative control indicator column
+  - type: add_column
+    params:
+      query: "Metadata_pert_type == 'negcon'"
+      column: "Metadata_negcon"
+
+  # Force negcons not to have activity calculated
+  - type: apply_assign_reference
+    params:
+      condition: "Metadata_negcon"
+      reference_col: "Metadata_reference_index"
+      default_value: -1

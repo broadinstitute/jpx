@@ -1,0 +1,157 @@
+# =============================================================================
+# Copairs Run Matrix
+# =============================================================================
+# Defines copairs-runner analysis runs. Edit to change the fan-out.
+#
+# For documentation on config keys, datasets, and DuckDB column mappings, see:
+#   .claude/skills/copairs/CONFIG.md
+# =============================================================================
+
+activity:
+  - { dataset: compound_no_source7,          columns: feat_all, preprocessing_02_core: activity_with_target2, filter: source_2 }
+  - { dataset: compound_no_source7,          columns: feat_all, preprocessing_02_core: activity_no_target2,   filter: all_sources }
+  - { dataset: compound_no_source7_rsc,        columns: feat_all, preprocessing_02_core: activity_no_target2,   filter: all_sources }
+  - { dataset: compound_no_source7_rsc_source, columns: feat_all, preprocessing_02_core: activity_no_target2,   filter: all_sources }
+  - { dataset: compound_DL_CPCNN_no_source7,            columns: feat_all, preprocessing_02_core: activity_with_target2, filter: source_2 }
+  - { dataset: compound_DL_CPCNN_no_source7,            columns: feat_all, preprocessing_02_core: activity_no_target2,   filter: all_sources }
+  - { dataset: compound_DL_CPCNN_no_source7_rsc,        columns: feat_all, preprocessing_02_core: activity_no_target2,   filter: all_sources }
+  - { dataset: compound_DL_CPCNN_no_source7_rsc_source, columns: feat_all, preprocessing_02_core: activity_no_target2,   filter: all_sources }
+  # Source_7-exclusive: includes 3,191 compounds profiled only at source_7 (0.625 µM)
+  - { dataset: compound_with_source7,          columns: feat_all, preprocessing_02_core: activity_no_target2, filter: all_sources }
+  - { dataset: compound_DL_CPCNN_with_source7, columns: feat_all, preprocessing_02_core: activity_no_target2, filter: all_sources }
+
+consistency:
+  # ---------------------------------------------------------------------------
+  # Core consistency runs - expanded as outer product of datasets × targets × preprocessings
+  # 2 datasets × 9 targets × 2 preprocessings = 36 runs
+  # ---------------------------------------------------------------------------
+  - datasets: [compound_no_source7, compound_DL_CPCNN_no_source7]
+    columns: feat_all
+    targets: &all_9_targets
+      - { column: repurposing,        table: repurposing_hub_targets }
+      - { column: uniprot,            table: chembl_protein_targets }
+      - { column: chemical_probes,    table: chemical_probes }
+      - { column: moa,                table: repurposing_hub_annotations }
+      - { column: disease_area,       table: repurposing_hub_annotations }
+      - { column: motive_biokg,       table: motive_targets_biokg }
+      - { column: motive_opentargets, table: motive_targets_opentargets }
+      - { column: motive_primekg,     table: motive_targets_primekg }
+      - { column: toxcast_assay,      table: toxcast_active_assays }
+    preprocessings:
+      - { cons: consistency_no_target2,   act: activity_no_target2,   filter: all_sources }
+      - { cons: consistency_with_target2, act: activity_with_target2, filter: source_2 }
+    distances: [cosine]
+
+  # ---------------------------------------------------------------------------
+  # Source_7-exclusive: includes 3,191 compounds profiled only at source_7
+  # 2 datasets × 9 targets × 1 preprocessing = 18 runs
+  # ---------------------------------------------------------------------------
+  - datasets: [compound_with_source7, compound_DL_CPCNN_with_source7]
+    columns: feat_all
+    targets: *all_9_targets
+    preprocessings:
+      - { cons: consistency_no_target2, act: activity_no_target2, filter: all_sources }
+    distances: [cosine]
+
+
+
+  # ---------------------------------------------------------------------------
+  # RSC variants (in-repo Harmony) - single repurposing run each for recipe vs in-repo comparison
+  #   _rsc:        Metadata_Batch (122 batches, fine-grained)
+  #   _rsc_source: Metadata_Source (10 sources, coarse)
+  # ---------------------------------------------------------------------------
+  - { dataset: compound_no_source7_rsc,                 columns: feat_all, preprocessing_02_core_cons: consistency_no_target2, preprocessing_02_core_act: activity_no_target2, filter: all_sources, target_column: repurposing, target_table: repurposing_hub_targets, distance: cosine }
+  - { dataset: compound_no_source7_rsc_source,           columns: feat_all, preprocessing_02_core_cons: consistency_no_target2, preprocessing_02_core_act: activity_no_target2, filter: all_sources, target_column: repurposing, target_table: repurposing_hub_targets, distance: cosine }
+  - { dataset: compound_DL_CPCNN_no_source7_rsc,         columns: feat_all, preprocessing_02_core_cons: consistency_no_target2, preprocessing_02_core_act: activity_no_target2, filter: all_sources, target_column: repurposing, target_table: repurposing_hub_targets, distance: cosine }
+  - { dataset: compound_DL_CPCNN_no_source7_rsc_source,  columns: feat_all, preprocessing_02_core_cons: consistency_no_target2, preprocessing_02_core_act: activity_no_target2, filter: all_sources, target_column: repurposing, target_table: repurposing_hub_targets, distance: cosine }
+
+  # ---------------------------------------------------------------------------
+  # abs_cosine metric variants for disease_area and moa
+  # 2 datasets × 2 targets = 4 runs
+  # ---------------------------------------------------------------------------
+  - datasets: [compound_no_source7, compound_DL_CPCNN_no_source7]
+    columns: feat_all
+    targets:
+      - { column: disease_area, table: repurposing_hub_annotations }
+      - { column: moa,          table: repurposing_hub_annotations }
+    preprocessings:
+      - { cons: consistency_no_target2, act: activity_no_target2, filter: all_sources }
+    distances: [abs_cosine]
+
+# Cross-source reproducibility analysis
+# Measures how consistently compounds behave across different lab sites (sources)
+# Only for plates with within-source replicates (TARGET2, poscons)
+
+# Within-source baseline (same compound, same source)
+# 2 datasets × 3 preprocessings = 6 runs
+activity_withinsource:
+  - datasets: [compound_no_source7, compound_DL_CPCNN_no_source7]
+    columns: feat_all
+    preprocessings:
+      - { preprocessing: activity_only_target2, filter: all_sources }
+      - { preprocessing: activity_only_target2, filter: no_source9 }
+      - { preprocessing: activity_poscon_only,  filter: all_sources }
+
+# Cross-source comparison (same compound, different sources)
+# 2 datasets × 3 preprocessings = 6 runs
+activity_crosssource:
+  - datasets: [compound_no_source7, compound_DL_CPCNN_no_source7]
+    columns: feat_all
+    preprocessings:
+      - { preprocessing: activity_only_target2, filter: all_sources }
+      - { preprocessing: activity_only_target2, filter: no_source9 }
+      - { preprocessing: activity_poscon_only,  filter: all_sources }
+
+# ---------------------------------------------------------------------------
+# Activity threshold sweep for sensitivity analysis (Issue #22)
+# Separate from core consistency runs to avoid modifying existing outputs
+# 1 dataset × 4 targets × 6 thresholds = 24 runs
+# ---------------------------------------------------------------------------
+consistency_sweep:
+  - datasets: [compound_no_source7]
+    columns: feat_all
+    targets:
+      - { column: repurposing,        table: repurposing_hub_targets }
+      - { column: motive_opentargets, table: motive_targets_opentargets }
+      - { column: moa,                table: repurposing_hub_annotations }
+      - { column: motive_biokg,       table: motive_targets_biokg }
+    preprocessings:
+      - { cons: consistency_no_target2_sweep, act: activity_no_target2, filter: all_sources }
+    distances: [cosine]
+    thresholds: [0.05, 0.10, 0.15, 0.20, 0.25, 0.30]
+
+# Union-based consistency runs (pre-filtered datasets)
+# Both profiles evaluated on all perturbations active in either method
+# 2 datasets × 9 targets = 18 runs
+consistency_prefiltered:
+  - datasets: [compound_no_source7_active_union, compound_DL_CPCNN_no_source7_active_union]
+    columns: feat_all
+    preprocessing_02_core_cons: consistency_prefiltered
+    filter: all_sources
+    distance: cosine
+    targets:
+      - repurposing
+      - uniprot
+      - chemical_probes
+      - moa
+      - disease_area
+      - motive_biokg
+      - motive_opentargets
+      - motive_primekg
+      - toxcast_assay
+  # Source_7-inclusive active union (fair CP-vs-DL comparison with source_7)
+  - datasets: [compound_with_source7_active_union, compound_DL_CPCNN_with_source7_active_union]
+    columns: feat_all
+    preprocessing_02_core_cons: consistency_prefiltered
+    filter: all_sources
+    distance: cosine
+    targets:
+      - repurposing
+      - uniprot
+      - chemical_probes
+      - moa
+      - disease_area
+      - motive_biokg
+      - motive_opentargets
+      - motive_primekg
+      - toxcast_assay

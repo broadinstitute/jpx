@@ -1,0 +1,3 @@
+name: compound_DL_CPCNN
+path: "data/raw/profiles/compound_DL_CPCNN.parquet"
+description: "Deep learning CNN compound dataset"

@@ -1,0 +1,7 @@
+# Harmony batch correction parameters
+# Change batch_key to experiment with different correction granularity:
+#   Metadata_Batch (122 batches, fine-grained) or Metadata_Source (10 sources, coarse)
+batch_key: Metadata_Batch
+n_clusters: 300
+max_iter_harmony: 50
+n_pcs: 200

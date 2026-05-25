@@ -1,0 +1,3 @@
+name: feat_few
+columns: ["Metadata_Source", "Metadata_Plate", "Metadata_JCP2022", "Metadata_Well", "X_1", "X_2", "X_3"]
+description: "Limited feature set for fast processing"

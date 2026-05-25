@@ -1,0 +1,41 @@
+name: consistency_with_target2
+steps:
+  # Remove features with NaN values
+  - type: remove_nan_features
+    params:
+
+  # Add negative control indicator column
+  - type: add_column
+    params:
+      query: "Metadata_pert_type == 'negcon'"
+      column: "Metadata_negcon"
+
+  # Force negcons not to have activity calculated
+  - type: apply_assign_reference
+    params:
+      condition: "Metadata_negcon"
+      reference_col: "Metadata_reference_index"
+      default_value: -1
+
+  # Filter to only active compounds based on activity analysis
+  - type: filter_active
+    params:
+      activity_file: ${oc.env:COPAIRS_OUTPUT,.}/data/processed/copairs/runs/activity/${dataset.name}__${columns.name}__activity_with_target2__${filter.name}__default/results/activity_map_results.csv
+      on_columns: "Metadata_JCP2022"
+      threshold: 0.10  # p-value threshold for phenotypic activity (matches activity.yaml)
+
+  # Remove rows with missing targets
+  - type: dropna
+    params:
+      columns: ["${target_column.column}"]
+
+  # Aggregate replicates by taking median of features (as done in notebook)
+  - type: aggregate_replicates
+    params:
+      groupby: ["Metadata_JCP2022", "${target_column.column}"]
+
+  # Split the pipe-separated target values into lists for multilabel analysis
+  - type: split_multilabel
+    params:
+      column: "${target_column.column}"
+      separator: "|"

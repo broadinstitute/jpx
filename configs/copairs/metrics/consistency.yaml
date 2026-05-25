@@ -1,0 +1,57 @@
+defaults:
+  - dataset: ???
+  - columns: ???
+  - preprocessing_01_metadata: jump_with_annotations  # Includes annotation metadata
+  - preprocessing_02_core: ???                    # Core preprocessing steps
+  - filter: ???
+  - target_column: ???
+  - _self_
+
+# Distance metric for similarity computation
+# Options: cosine, abs_cosine, correlation, euclidean, manhattan
+distance: ???
+
+hydra:
+  run:
+    dir: ${oc.env:COPAIRS_OUTPUT,.}/data/processed/copairs/runs/consistency/${dataset.name}__${columns.name}__${preprocessing_02_core.name}__${filter.name}__${target_column.name}__${distance}/results/
+  job:
+    chdir: false  # Stay in original working directory
+
+# Input configuration using interpolation from config groups
+input:
+  use_lazy_filter: true
+  path: ${dataset.path}
+  columns: ${columns.columns}
+  filter_query: ${filter.query}
+
+# Analysis parameters for consistency (multilabel target analysis)
+average_precision:
+  # Use multilabel since compounds have multiple targets (separated by |)
+  multilabel: true
+
+  params:
+    # Positive pairs: compounds sharing the same target
+    pos_sameby: ["${target_column.column}"]
+    pos_diffby: []
+
+    # Negative pairs: compounds with different targets
+    neg_sameby: []
+    neg_diffby: ["${target_column.column}"]
+
+    # For multilabel analysis, specify the column
+    multilabel_col: "${target_column.column}"
+    batch_size: 1000
+
+    distance: ${distance}
+
+mean_average_precision:
+  params:
+    sameby: ["${target_column.column}"]  # Group by target
+    null_size: 100000           # As used in notebook
+    threshold: 0.05
+    seed: 0                      # As used in notebook
+
+# Output configuration
+output:
+  directory: "${hydra:runtime.output_dir}"
+  name: "consistency"

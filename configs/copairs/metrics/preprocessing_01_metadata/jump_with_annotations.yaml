@@ -1,0 +1,66 @@
+name: jump_with_annotations
+steps:
+  - type: merge_metadata
+    params:
+      source: "data/external/jump_metadata.duckdb"
+      table: "plate"
+      on_columns: ["Metadata_Source", "Metadata_Plate"]
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/external/jump_metadata.duckdb"
+      table: "perturbation_control"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "repurposing_hub_annotations"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "chembl_protein_targets"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "chemical_probes"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  # MOTIVE gene targets from 3 curated databases (drugrep excluded - use repurposing_hub_annotations)
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "motive_targets_biokg"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "motive_targets_opentargets"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "motive_targets_primekg"
+      on_columns: "Metadata_JCP2022"
+      how: "left"
+
+  # ToxCast active assays aggregated per compound (for consistency analysis)
+  - type: merge_metadata
+    params:
+      source: "data/interim/jump_metadata_augmented.duckdb"
+      table: "toxcast_active_assays"
+      on_columns: "Metadata_JCP2022"
+      how: "left"

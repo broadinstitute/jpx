@@ -1,0 +1,3 @@
+name: compound_DL_CPCNN_with_source7
+path: "data/raw/profiles/compound_DL_CPCNN_with_source7.parquet"
+description: "DL CPCNN dataset with source_7-exclusive compounds (0.625 µM, no dose mixing)"

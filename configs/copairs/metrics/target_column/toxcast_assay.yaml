@@ -1,0 +1,3 @@
+name: toxcast_assay
+column: Metadata_txcst_active_assays
+description: ToxCast assay endpoints where compound is active (hitcall > 0.9)

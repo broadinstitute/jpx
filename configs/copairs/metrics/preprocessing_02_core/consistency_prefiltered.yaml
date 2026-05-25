@@ -1,0 +1,50 @@
+# Preprocessing for datasets that are pre-filtered to active perturbations.
+# Use this with *_active_union datasets where activity filtering was done
+# during dataset creation (union of active perturbations from both methods).
+name: consistency_prefiltered
+
+steps:
+  # Remove TARGET2 plates
+  - type: filter
+    params:
+      query: "Metadata_PlateType != 'TARGET2'"
+
+  # Remove positive controls
+  - type: filter
+    params:
+      query: "Metadata_pert_type != 'poscon'"
+
+  # Remove features with NaN values
+  - type: remove_nan_features
+    params:
+
+  # Add negative control indicator column
+  - type: add_column
+    params:
+      query: "Metadata_pert_type == 'negcon'"
+      column: "Metadata_negcon"
+
+  # Force negcons not to have activity calculated
+  - type: apply_assign_reference
+    params:
+      condition: "Metadata_negcon"
+      reference_col: "Metadata_reference_index"
+      default_value: -1
+
+  # NOTE: No filter_active step - data is pre-filtered to active perturbations
+
+  # Remove rows with missing targets
+  - type: dropna
+    params:
+      columns: ["${target_column.column}"]
+
+  # Aggregate replicates by taking median of features
+  - type: aggregate_replicates
+    params:
+      groupby: ["Metadata_JCP2022", "${target_column.column}"]
+
+  # Split the pipe-separated target values into lists for multilabel analysis
+  - type: split_multilabel
+    params:
+      column: "${target_column.column}"
+      separator: "|"

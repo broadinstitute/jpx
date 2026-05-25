@@ -1,0 +1,21 @@
+# @package _global_
+# Within-source activity: positive pairs must match on source
+# Compares replicates within the same lab site
+
+activity_params:
+  name: "withinsource"
+
+average_precision:
+  params:
+    pos_sameby: ["Metadata_JCP2022", "Metadata_Source", "Metadata_reference_index"]
+    pos_diffby: []
+    neg_sameby: ["Metadata_Plate"]
+    neg_diffby: ["Metadata_negcon"]
+    batch_size: 1000
+
+mean_average_precision:
+  params:
+    sameby: ["Metadata_JCP2022", "Metadata_Source"]
+    null_size: 100000
+    threshold: 0.1
+    seed: 12527

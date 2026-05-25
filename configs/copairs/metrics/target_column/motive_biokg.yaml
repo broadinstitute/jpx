@@ -1,0 +1,3 @@
+name: motive_biokg
+column: Metadata_motive_gene_biokg
+description: Gene targets from MOTIVE BioKG database

@@ -1,0 +1,3 @@
+name: source_2
+query: "Metadata_Source IN ('source_2')"
+description: "Include only source_2 data"

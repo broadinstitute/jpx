@@ -1,0 +1,6 @@
+# Inherit from consistency_no_target2 and only override the name
+# This config is used for threshold sweep runs to distinguish them from regular runs
+defaults:
+  - consistency_no_target2
+
+name: consistency_no_target2_sweep

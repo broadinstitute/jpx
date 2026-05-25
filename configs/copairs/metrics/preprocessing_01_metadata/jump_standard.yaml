@@ -1,0 +1,15 @@
+name: jump_standard
+steps:
+  - type: merge_metadata
+    params:
+      source: "data/external/jump_metadata.duckdb"
+      table: "plate"
+      on_columns: ["Metadata_Source", "Metadata_Plate"]
+      how: "left"
+
+  - type: merge_metadata
+    params:
+      source: "data/external/jump_metadata.duckdb"
+      table: "perturbation_control"
+      on_columns: "Metadata_JCP2022"
+      how: "left"

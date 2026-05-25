@@ -1,0 +1,3 @@
+name: no_source9
+query: "Metadata_Source != 'source_9'"
+description: "Exclude source_9 (anomalous TARGET2 data, see issue #24)"

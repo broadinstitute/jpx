@@ -1,0 +1,3 @@
+name: compound
+path: "data/raw/profiles/compound.parquet"
+description: "Compound dataset with all sources including source_7"

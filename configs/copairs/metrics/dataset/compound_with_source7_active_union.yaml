@@ -1,0 +1,3 @@
+name: compound_with_source7_active_union
+path: "data/raw/profiles/compound_with_source7_active_union.parquet"
+description: "CellProfiler profiles (with source_7) filtered to union of active perturbations (active in either CP or DL)"

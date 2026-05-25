@@ -1,0 +1,3 @@
+name: motive_opentargets
+column: Metadata_motive_gene_opentargets
+description: Gene targets from MOTIVE OpenTargets database

@@ -1,0 +1,41 @@
+# Poscon-only activity analysis with plate-level aggregation
+# Aggregates ~55k poscon profiles to ~11k plate-level medians
+# Reduces cross-source pairs from 333M to 14M (runtime: ~20s vs ~100min)
+name: activity_poscon_only
+steps:
+  # Keep only COMPOUND plates
+  - type: filter
+    params:
+      query: "Metadata_PlateType == 'COMPOUND'"
+
+  # Keep only poscons and negcons
+  - type: filter
+    params:
+      query: "Metadata_pert_type == 'poscon' or Metadata_pert_type == 'negcon'"
+
+  # Remove features with NaN values
+  - type: remove_nan_features
+    params:
+
+  # Aggregate to plate-level median BEFORE adding negcon flag
+  # This reduces 55k poscon profiles to ~11k plate-level profiles
+  - type: aggregate_replicates
+    params:
+      groupby:
+        - Metadata_JCP2022
+        - Metadata_Source
+        - Metadata_Plate
+        - Metadata_pert_type
+
+  # Add negative control indicator column
+  - type: add_column
+    params:
+      query: "Metadata_pert_type == 'negcon'"
+      column: "Metadata_negcon"
+
+  # Force negcons not to have activity calculated
+  - type: apply_assign_reference
+    params:
+      condition: "Metadata_negcon"
+      reference_col: "Metadata_reference_index"
+      default_value: -1

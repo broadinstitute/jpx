@@ -1,0 +1,28 @@
+defaults:
+  - dataset: ???
+  - columns: ???
+  - preprocessing_01_metadata: jump_standard  # Metadata merging (runs first)
+  - preprocessing_02_core: ???               # Core preprocessing steps (runs second)
+  - filter: ???
+  - activity_params: default                 # Activity parameters (average_precision + mean_average_precision)
+  - _self_
+
+hydra:
+  run:
+    dir: ${oc.env:COPAIRS_OUTPUT,.}/data/processed/copairs/runs/activity/${dataset.name}__${columns.name}__${preprocessing_02_core.name}__${filter.name}__${activity_params.name}/results/
+  job:
+    chdir: false  # Stay in original working directory
+
+# Input configuration using interpolation from config groups
+input:
+  use_lazy_filter: true
+  path: ${dataset.path}
+  columns: ${columns.columns}
+  filter_query: ${filter.query}
+
+# average_precision.params and mean_average_precision.params come from activity_params config group
+
+# Output configuration
+output:
+  directory: "${hydra:runtime.output_dir}"
+  name: "activity"

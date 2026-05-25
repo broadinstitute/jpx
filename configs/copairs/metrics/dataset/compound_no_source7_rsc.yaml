@@ -1,0 +1,3 @@
+name: compound_no_source7_rsc
+path: "data/raw/profiles/compound_no_source7_rsc.parquet"
+description: "Compound dataset excluding source 7 harmony corrected using RSC"

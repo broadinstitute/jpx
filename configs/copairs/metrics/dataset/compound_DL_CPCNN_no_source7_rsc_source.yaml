@@ -1,0 +1,3 @@
+name: compound_DL_CPCNN_no_source7_rsc_source
+path: "data/raw/profiles/compound_DL_CPCNN_no_source7_rsc_source.parquet"
+description: "DL CPCNN dataset excluding source 7 harmony corrected using RSC (Metadata_Source batch key)"

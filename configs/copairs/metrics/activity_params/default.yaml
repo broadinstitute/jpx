@@ -1,0 +1,20 @@
+# @package _global_
+# Standard activity: compare replicates regardless of source
+
+activity_params:
+  name: "default"
+
+average_precision:
+  params:
+    pos_sameby: ["Metadata_JCP2022", "Metadata_reference_index"]
+    pos_diffby: []
+    neg_sameby: ["Metadata_Plate"]
+    neg_diffby: ["Metadata_negcon"]
+    batch_size: 1000
+
+mean_average_precision:
+  params:
+    sameby: ["Metadata_JCP2022"]
+    null_size: 100000
+    threshold: 0.1
+    seed: 12527

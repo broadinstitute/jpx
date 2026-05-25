@@ -1,0 +1,12 @@
+# Author list is preliminary - finalize before publication.
+cff-version: 1.2.0
+title: "jpx - JUMP Production eXplore"
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - family-names: Singh
+    given-names: Shantanu
+    affiliation: Broad Institute of MIT and Harvard
+    orcid: "https://orcid.org/0000-0003-1226-1111"
+repository-code: "https://github.com/broadinstitute/jpx"
+license: BSD-3-Clause
