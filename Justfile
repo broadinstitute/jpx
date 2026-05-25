@@ -90,6 +90,12 @@ get-results-for run_path:
 
 # ==================== UTILITIES ====================
 
+# Delete all pipeline outputs (interim + processed). Inputs are untouched.
+[confirm("This will delete all files in data/interim/ and data/processed/. Continue?")]
+clean:
+    rm -rf {{INTERIM_DIR}}/* {{PROCESSED_DIR}}/*
+    @echo "Done! (data/external/ and data/raw/ are untouched)"
+
 # See pipeline status (redun execution log)
 status:
     @echo "Pipeline status:"
