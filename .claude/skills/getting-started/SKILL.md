@@ -49,9 +49,10 @@ uvx marimo@latest edit --sandbox notebooks/nb16_ss_target_consistency.py
 
 `uvx marimo@latest --sandbox` runs notebooks with their PEP 723 inline dependencies in an isolated env, independent of the pixi env.
 
-4. (Optional) Install the marimo-pair skill for live kernel composition:
+4. Install third-party agent skills (marimo notebook authoring, paper implementation, etc.):
 
 ```bash
+npx skills add marimo-team/skills --agent claude-code -y
 npx skills add marimo-team/marimo-pair --agent claude-code -y
 ```
 
