@@ -90,3 +90,6 @@ Do not use `--sandbox` with GPU notebooks - it shadows conda packages.
 - `ModuleNotFoundError` on launch: you forgot `--sandbox` (pure-Python) or used `--sandbox` with a GPU notebook
 - Pipeline hangs at copairs: check `CUDA_VISIBLE_DEVICES` if GPU memory is contended
 - `pixi install` fails on macOS: GPU features (rapids, chemberta, deepchem) are linux-only; the default env works on both platforms
+- Pipeline segfaults (exit code 139) on first run: cheminformatics and rapids env tasks can crash during first-time environment initialization under redun's multiprocessing executor. Re-run the pipeline - redun caches completed tasks and picks up where it left off.
+- uv panics with "Too many open files": the default `ulimit -n 1024` is too low for uv's parallel bytecode compilation. Fix: `ulimit -n 65536` before running `uvx`.
+- Port already in use when launching marimo: another user (or a zombie process from a previous crash) may be holding the port. Check with `sudo lsof -i :<port>` and pick a different port or `fuser -k <port>/tcp` to kill your own stale process.
