@@ -106,15 +106,14 @@ with app.setup:
 
     MANUAL_FILES = [
         "pd_export_01_2025_875_targets_standardized.xlsx",
-        "pd_export_01_2025_784_targets_standardized.xlsx",
         "molport_batch_search.zip",
-        "pkis_chembl_cache.json",
-        "Human_PK_data.csv",
-        "DILIrankv2_smiles.csv",
-        "DICTrank_smiles.csv",
     ]
 
     PROFILE_FILES = {
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound/v1.0/profiles_var_mad_int_featselect_harmony.parquet": (
+            "compound.parquet",
+            "85c2af21852866418d9cacbf7483c98d93001e3818b8527e810381ce6894735f",
+        ),
         "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect_harmony.parquet": (
             "compound_no_source7.parquet",
             "8e1e5d9e50c8c7c95ed406981b02adb57c7ff9d253192ed52e661115379be6f1",
@@ -157,18 +156,23 @@ def _(mo):
     Fetch all external annotation files and morphological profiles from their
     original public sources with SHA-256 hash verification via Pooch.
 
-    **Two acquisition paths exist:**
-    - This notebook: downloads each file from its canonical URL (full provenance)
+    **Three acquisition paths exist:**
+    - `just get-results`: pre-computed pipeline outputs only (skip the pipeline entirely)
     - `just get-inputs`: bulk rclone sync from pre-staged S3 (faster, no per-file verification)
+    - `just get-from-sources` (this notebook): downloads each file from its canonical URL (full provenance)
 
-    Both produce identical `data/external/` and `data/raw/profiles/` contents.
+    `get-from-sources` covers all downloadable files but not the manual files
+    listed in `MANUAL_FILES` (portal exports, batch searches). Those must be
+    obtained separately and are also available via `get-inputs` once staged.
 
     **Exported functions:**
-    - `download_external_files()` - annotation sources (ChEMBL, Repurposing Hub, ToxCast, etc.)
+    - `download_external_files()` - annotation sources (Repurposing Hub, ToxCast, etc.)
     - `download_profiles()` - recipe-Harmony profiles from CellPainting Gallery
     - `download_pre_harmony_profiles()` - pre-batch-correction profiles
+    - `download_pkis_chembl()` - PKIS molecule data from ChEMBL API
     - `download_mitotox()` - MitoTox database from mitotox.org API + PubChem SMILES
     - `download_all()` - all of the above
+    - `check_manual_files()` - report which manual files are missing
     """)
     return
 
@@ -257,6 +261,60 @@ def download_pre_harmony_profiles(
 
     logger.success(f"Downloaded {len(paths)} pre-Harmony profiles to {output_dir}")
     return paths
+
+
+# ---------------------------------------------------------------------------
+# PKIS download (ChEMBL API)
+# ---------------------------------------------------------------------------
+
+CHEMBL_BASE_URL = "https://www.ebi.ac.uk"
+CHEMBL_PKIS_URL = f"{CHEMBL_BASE_URL}/chembl/api/data/molecule.json?document_chembl_id=CHEMBL2303647&limit=1000"
+
+
+@app.function
+def download_pkis_chembl(
+    output_dir: Path | None = None,
+    max_compounds: int = 2000,
+    force: bool = False,
+) -> Path:
+    """Fetch PKIS molecule data from ChEMBL API (document CHEMBL2303647).
+
+    Paginates through the API and caches the raw JSON response.
+    Used downstream by nb34 for kinase probe curation.
+    """
+    if output_dir is None:
+        output_dir = EXTERNAL_DATA_DIR
+
+    output_path = output_dir / "pkis_chembl_cache.json"
+    if output_path.exists() and not force:
+        logger.info(f"Output exists: {output_path}. Pass force=True to overwrite.")
+        return output_path
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    logger.info("Fetching PKIS from ChEMBL API...")
+    molecules = []
+    url = CHEMBL_PKIS_URL
+    while url and len(molecules) < max_compounds:
+        for attempt in range(3):
+            response = requests.get(url, timeout=60)
+            if response.status_code < 500:
+                break
+            logger.warning(f"ChEMBL returned {response.status_code}, retry {attempt + 1}/3")
+            time.sleep(2 ** attempt)
+        response.raise_for_status()
+        data = response.json()
+        molecules.extend(data.get("molecules", []))
+        next_url = data.get("page_meta", {}).get("next")
+        if next_url and not next_url.startswith("http"):
+            url = f"{CHEMBL_BASE_URL}{next_url}"
+        else:
+            url = next_url
+
+    molecules = molecules[:max_compounds]
+    output_path.write_text(json.dumps(molecules))
+    logger.success(f"Cached {len(molecules)} PKIS molecules to {output_path}")
+    return output_path
 
 
 # ---------------------------------------------------------------------------
@@ -427,6 +485,7 @@ def download_all() -> dict[str, list[Path] | Path]:
         "external": download_external_files(),
         "profiles": download_profiles(),
         "pre_harmony": download_pre_harmony_profiles(),
+        "pkis_chembl": download_pkis_chembl(),
         "mitotox": download_mitotox(),
     }
 

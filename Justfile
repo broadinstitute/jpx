@@ -27,11 +27,11 @@ S3_PROJECT_PATH := "projects/cpg0042-chandrasekaran-jump/workspace/publication_d
 S3_PREFIX := "s3://" + S3_BUCKET + "/" + S3_PROJECT_PATH
 
 # Rclone configuration for public S3 (no credentials needed)
-RCLONE_FLAGS := env_var_or_default("RCLONE_FLAGS", "--transfers 16 --checkers 16")
+RCLONE_FLAGS := env("RCLONE_FLAGS", "--transfers 16 --checkers 16")
 RCLONE_SYNC := "rclone sync " + RCLONE_FLAGS + " -v --stats-one-line --s3-provider=AWS --s3-region=us-east-1 --exclude '.DS_Store' --exclude '__pycache__/**' --exclude '*.pyc'"
 
 # S5CMD configuration for listing
-S5CMD_FLAGS := env_var_or_default("S5CMD_FLAGS", "--numworkers 16 --no-sign-request")
+S5CMD_FLAGS := env("S5CMD_FLAGS", "--numworkers 16 --no-sign-request")
 S5CMD := "s5cmd " + S5CMD_FLAGS
 
 # Pipeline orchestration
@@ -56,6 +56,12 @@ redun *args:
 
 # ==================== DATA SYNC ====================
 
+# Download from original sources (ChEMBL, CellPainting Gallery, Zenodo, etc.)
+# Hash-verified via Pooch. Equivalent to get-inputs but with full URL provenance.
+get-from-sources:
+    @echo "Downloading from original sources (Pooch, hash-verified)..."
+    @pixi run python -c "import sys; sys.path.insert(0, 'notebooks'); from nb43_ss_download_data import download_all; download_all()"
+
 # Download input data from public S3 (no credentials needed)
 get-inputs:
     @echo "Downloading input data from S3..."
@@ -75,12 +81,6 @@ get-results:
     @echo "Syncing processed/..."
     {{RCLONE_SYNC}} ":s3:{{S3_BUCKET}}/{{S3_PROJECT_PATH}}/processed/" {{PROCESSED_DIR}}/
     @echo "Done!"
-
-# Download from original sources (ChEMBL, CellPainting Gallery, Zenodo, etc.)
-# Hash-verified via Pooch. Equivalent to get-inputs but with full URL provenance.
-get-from-sources:
-    @echo "Downloading from original sources (Pooch, hash-verified)..."
-    @pixi run python -c "import sys; sys.path.insert(0, 'notebooks'); from nb43_ss_download_data import download_all; download_all()"
 
 # Download specific results subdirectory
 get-results-for run_path:

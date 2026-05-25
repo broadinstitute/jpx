@@ -57,14 +57,6 @@ def _(mo):
 
 
 # ---------------------------------------------------------------------------
-# ChEMBL API config for PKIS
-# ---------------------------------------------------------------------------
-
-CHEMBL_BASE_URL = "https://www.ebi.ac.uk"
-CHEMBL_PKIS_URL = f"{CHEMBL_BASE_URL}/chembl/api/data/molecule.json?document_chembl_id=CHEMBL2303647&limit=1000"
-
-
-# ---------------------------------------------------------------------------
 # Internal helpers for chemical probes
 # ---------------------------------------------------------------------------
 
@@ -217,50 +209,27 @@ def _load_kcgs(input_file: Path) -> pd.DataFrame:
 
 
 @app.function
-def _load_pkis_raw(cache_file: Path | None = None, max_compounds: int = 2000) -> list:
-    """Load raw PKIS molecule data from cache or ChEMBL API.
-
-    Returns list of raw molecule dicts from ChEMBL API.
-    """
-    if cache_file and cache_file.exists():
-        logger.info(f"Loading PKIS from cache: {cache_file}")
-        with open(cache_file) as f:
-            return json.load(f)
-
-    logger.info("Fetching PKIS from ChEMBL API...")
-    molecules = []
-
-    url = CHEMBL_PKIS_URL
-    while url and len(molecules) < max_compounds:
-        with urllib.request.urlopen(url, timeout=60) as response:
-            data = json.loads(response.read().decode())
-            molecules.extend(data.get("molecules", []))
-            next_url = data.get("page_meta", {}).get("next")
-            if next_url and not next_url.startswith("http"):
-                url = f"{CHEMBL_BASE_URL}{next_url}"
-            else:
-                url = next_url
-
-    molecules = molecules[:max_compounds]
-    logger.info(f"Fetched {len(molecules)} molecules from ChEMBL")
-
-    if cache_file:
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        with open(cache_file, "w") as f:
-            json.dump(molecules, f)
-        logger.info(f"Cached PKIS data to {cache_file}")
-
-    return molecules
+def _load_pkis_raw(cache_file: Path | None = None) -> list:
+    """Load raw PKIS molecule data from cache (produced by nb43)."""
+    if cache_file is None:
+        cache_file = EXTERNAL_DATA_DIR / "pkis_chembl_cache.json"
+    if not cache_file.exists():
+        raise FileNotFoundError(
+            f"PKIS cache not found: {cache_file}. Run nb43 download_pkis_chembl() or `just get-from-sources` first."
+        )
+    logger.info(f"Loading PKIS from cache: {cache_file}")
+    with open(cache_file) as f:
+        return json.load(f)
 
 
 @app.function
-def _fetch_pkis_from_chembl(cache_file: Path | None = None, max_compounds: int = 2000) -> pd.DataFrame:
-    """Fetch PKIS compounds from ChEMBL API and return as DataFrame.
+def _fetch_pkis_from_chembl(cache_file: Path | None = None) -> pd.DataFrame:
+    """Load PKIS compounds from cache and return as DataFrame.
 
     Returns DataFrame with columns: probe_id, probe_name, smiles,
     probe_set, selectivity_s10, is_original_kcgs, target_info.
     """
-    molecules = _load_pkis_raw(cache_file, max_compounds)
+    molecules = _load_pkis_raw(cache_file)
 
     pkis_data = []
     for mol in molecules:
