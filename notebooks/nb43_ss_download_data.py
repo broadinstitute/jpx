@@ -102,12 +102,25 @@ with app.setup:
             "toxicity_pk_data.zip",
             "80316a23707f6fb0fbabfcaf133dda1957459f753ad87f9b72d14de5ee4eb61b",
         ),
+        "https://zenodo.org/records/20388583/files/pd_export_01_2025_875_targets_standardized.xlsx?download=1": (
+            "pd_export_01_2025_875_targets_standardized.xlsx",
+            "20459a1fadfc1cbaa47bb7d3b1a16054ab3a7017d229f271966e5d9854a14f9b",
+        ),
+        "https://zenodo.org/records/20388583/files/molport_batch_search.zip?download=1": (
+            "molport_batch_search.zip",
+            "a9431123ea353d1d1b36cf61afb968e2bad041d08d6708e003784658a4c23960",
+        ),
+        "https://zenodo.org/records/20388583/files/pkis_chembl_cache.json?download=1": (
+            "pkis_chembl_cache.json",
+            "bf8c53323a8f7cb3fd5bfd35e6a9d08aed11690a254ac0c8e024507bf2e8f2e0",
+        ),
+        "https://zenodo.org/records/20388583/files/mitotox_compounds.parquet?download=1": (
+            "mitotox_compounds.parquet",
+            "4b23940e0793d8c805f04e0db74a9adc7003bc78c8f3ab5859ce7e2c4b3640bc",
+        ),
     }
 
-    MANUAL_FILES = [
-        "pd_export_01_2025_875_targets_standardized.xlsx",
-        "molport_batch_search.zip",
-    ]
+    MANUAL_FILES: list[str] = []
 
     PROFILE_FILES = {
         "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound/v1.0/profiles_var_mad_int_featselect_harmony.parquet": (
@@ -161,18 +174,15 @@ def _(mo):
     - `just get-inputs`: bulk rclone sync from pre-staged S3 (faster, no per-file verification)
     - `just get-from-sources` (this notebook): downloads each file from its canonical URL (full provenance)
 
-    `get-from-sources` covers all downloadable files but not the manual files
-    listed in `MANUAL_FILES` (portal exports, batch searches). Those must be
-    obtained separately and are also available via `get-inputs` once staged.
+    `get-from-sources` downloads everything needed to run the pipeline.
 
     **Exported functions:**
-    - `download_external_files()` - annotation sources (Repurposing Hub, ToxCast, etc.)
+    - `download_external_files()` - annotation sources (Repurposing Hub, ToxCast, Zenodo, etc.)
     - `download_profiles()` - recipe-Harmony profiles from CellPainting Gallery
     - `download_pre_harmony_profiles()` - pre-batch-correction profiles
     - `download_pkis_chembl()` - PKIS molecule data from ChEMBL API
     - `download_mitotox()` - MitoTox database from mitotox.org API + PubChem SMILES
     - `download_all()` - all of the above
-    - `check_manual_files()` - report which manual files are missing
     """)
     return
 
@@ -406,7 +416,7 @@ def download_mitotox(
     import pandas as pd
 
     if output_dir is None:
-        output_dir = EXTERNAL_DATA_DIR / "mitotox"
+        output_dir = EXTERNAL_DATA_DIR
 
     output_path = output_dir / "mitotox_compounds.parquet"
     if output_path.exists() and not force:
@@ -414,7 +424,7 @@ def download_mitotox(
         return output_path
 
     output_dir.mkdir(parents=True, exist_ok=True)
-    cache_dir = output_dir / "cache"
+    cache_dir = output_dir / "mitotox_cache"
 
     compounds = _load_or_fetch(cache_dir / "compounds.json", f"{MITOTOX_BASE_URL}/compounds/list", "compounds")
     records = _load_or_fetch(cache_dir / "records.json", f"{MITOTOX_BASE_URL}/records/list", "records")

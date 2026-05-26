@@ -384,7 +384,7 @@ def process_mitotox(
 
     Args:
         input_parquet: Path to mitotox_compounds.parquet.
-            Default: EXTERNAL_DATA_DIR / "mitotox" / "mitotox_compounds.parquet"
+            Default: EXTERNAL_DATA_DIR / "mitotox_compounds.parquet"
         compound_file: Path to compound.csv.gz.
             Default: EXTERNAL_DATA_DIR / "compound.csv.gz"
         output_file: Output CSV path.
@@ -394,7 +394,7 @@ def process_mitotox(
         Path to the saved output CSV file.
     """
     if input_parquet is None:
-        input_parquet = EXTERNAL_DATA_DIR / "mitotox" / "mitotox_compounds.parquet"
+        input_parquet = EXTERNAL_DATA_DIR / "mitotox_compounds.parquet"
     if compound_file is None:
         compound_file = EXTERNAL_DATA_DIR / "compound.csv.gz"
     if output_file is None:
@@ -518,7 +518,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    _input_parquet = EXTERNAL_DATA_DIR / "mitotox" / "mitotox_compounds.parquet"
+    _input_parquet = EXTERNAL_DATA_DIR / "mitotox_compounds.parquet"
     _compound_file = EXTERNAL_DATA_DIR / "compound.csv.gz"
 
     if _input_parquet.exists() and _compound_file.exists():
