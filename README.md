@@ -1,5 +1,8 @@
 # jpx - JUMP Production eXplore
 
+> [!NOTE]
+> Part of the [jx](https://github.com/broadinstitute/jx) experiment — not an official JUMP project.
+
 A reproducible analysis pipeline and agent-composable notebook catalog for [JUMP Cell Painting](https://jump-cellpainting.broadinstitute.org/) - the largest public morphological profiling dataset (~116K compounds, ~8K CRISPR knockouts, ~15K gene overexpressions, 1.6 billion cells).
 
 jpx is a catalog of 43 [marimo](https://marimo.io) notebooks that process, analyze, and visualize JUMP data.
