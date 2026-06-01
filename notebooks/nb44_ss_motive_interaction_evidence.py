@@ -32,7 +32,7 @@ with app.setup:
     import numpy as np
     import requests
 
-    from nb00_ss_config import EXTERNAL_DATA_DIR, RAW_DATA_DIR
+    from nb00_ss_config import COPAIRS_RESULTS_DB, EXTERNAL_DATA_DIR, RAW_DATA_DIR
 
     # --- jpx (THIS repo) inputs ---
     PROFILES_PARQUET = RAW_DATA_DIR / "profiles" / "all_modalities.parquet"
@@ -138,8 +138,8 @@ def _(mo):
       signals as specified, BRD4/JQ1 does NOT light up - so the punchline is NOT "every
       stream fires." The punchline is **decomposability**: the GNN emits one scalar
       (0.668) with no account of itself, while the loop lays out exactly which evidence
-      exists, which is weak, and WHY (e.g. BRD4 is pan-essential so DepMap can't
-      deconvolve it) - an honest, auditable breakdown a single forward pass cannot give.
+      exists, which is weak, and WHY (e.g. BRD4 is common-essential so DepMap has little
+      differential dependency to deconvolve) - an honest, auditable breakdown a single forward pass cannot give.
       That legibility, including where evidence is thin, IS the argument.
     - The labeled pairs **validate the judge / sanity-check the call**; they are not a
       target to chase. Keep the leakage split visible precisely because legibility - "you
@@ -310,8 +310,8 @@ def _(mo):
     - Morphology: directional cosines ~+0.035 (ORF) / +0.072 (CRISPR), BRD4 at the ~49.6th
       connectivity percentile (~random), sign pattern NOT inhibitor-consistent.
     - DepMap: naive PRISM-vs-Chronos Pearson r ~ +0.07 over ~383-577 shared cell lines -
-      weak because **BRD4 is broadly (pan-)essential**, so its Chronos dependency profile
-      is nearly flat and carries little line-to-line signal to correlate against. BRD4 is
+      weak because **BRD4 is common-essential** (knockout dependency ~-1 across nearly all
+      lines), so it carries little differential line-to-line signal to correlate against. BRD4 is
       therefore a structurally POOR positive control for the DepMap deconvolution stream
       (known a priori - a selectively-essential gene would be a fairer test).
     - So `provisional_call` returns "not supported by predictive evidence" even for the
@@ -332,10 +332,10 @@ def _(mo):
     Still worth deciding before the talk (each is a one-function swap): (1) replace the raw
     PRISM/Chronos Pearson with Breadbox's precomputed `temp/associations/query-slice` (more
     robust than hand-rolled correlation) - though it won't rescue BRD4, which is
-    pan-essential. (2) If you want a positive where streams fire STRONGLY, pick one whose
-    gene is selectively (not pan-) essential and whose compound is confirmed active with
+    common-essential. (2) If you want a positive where streams fire STRONGLY, pick one whose
+    gene is selectively (not common-) essential and whose compound is confirmed active with
     good (non-source-7) well coverage. Otherwise ship BRD4/JQ1 as the "auditable null":
-    the loop shows active compound + pan-essential gene + cross-source caveat = honest
+    the loop shows active compound + common-essential gene + cross-source caveat = honest
     "evidence is thin and here's why," which the scalar cannot express.
 
     To resolve a compound name -> `Metadata_InChIKey` for the demo, the cleanest in-repo
@@ -368,9 +368,9 @@ def _(mo):
 
     This is a pure-Python notebook (morphology + DepMap streams): launch with the sandbox.
     ```bash
-    nohup uvx marimo@latest edit notebooks/nb43_ss_motive_interaction_evidence.py \
+    nohup uvx marimo@latest edit notebooks/nb44_ss_motive_interaction_evidence.py \
         --port 2731 --host 0.0.0.0 --headless --sandbox --no-token \
-        > /tmp/marimo-nb43.log 2>&1 &
+        > /tmp/marimo-nb44.log 2>&1 &
     ```
     Validation rule (jpx): after composing, run ALL cells and confirm real output (not
     empty tables / broken plots) before declaring done. Then `pixi run ruff check/format
@@ -462,6 +462,34 @@ def resolve_compound_jcp(inchikey):
         if n > 0:
             return jcp
     return df["jcp"].iloc[0] if not df.empty else None
+
+
+@app.function
+def compound_activity(jcp):
+    """Phenotypic activity of the compound: is its morphology reproducible / distinct?
+
+    From copairs activity_results (compound_with_source7 / activity_no_target2 /
+    all_sources). Non-leaky: activity is a compound-only property, not the compound-gene
+    label. Returns None (gracefully) if the DB or row is absent.
+    """
+    if jcp is None or not Path(COPAIRS_RESULTS_DB).exists():
+        return None
+    try:
+        con = duckdb.connect(str(COPAIRS_RESULTS_DB), read_only=True)
+        df = con.execute(
+            "SELECT mean_average_precision AS map, corrected_p_value AS p, below_corrected_p AS active "
+            "FROM activity_results "
+            "WHERE Metadata_JCP2022 = ? AND _dataset = 'compound_with_source7' "
+            "AND _preprocessing = 'activity_no_target2' AND _filter = 'all_sources' LIMIT 1",
+            [jcp],
+        ).df()
+        con.close()
+    except Exception:  # noqa: BLE001 - activity is best-effort context
+        return None
+    if df.empty:
+        return None
+    row = df.iloc[0]
+    return {"map": float(row["map"]), "p": float(row["p"]), "active": bool(row["active"])}
 
 
 @app.function
@@ -589,6 +617,21 @@ def morphology_stream(inchikey, symbol, k_neighbors=5):
             )
         )
 
+    # 0.5 Phenotypic activity (is the morphology real? rules out a dead-profile explanation)
+    act = compound_activity(cpd_jcp)
+    if act is not None:
+        records.append(
+            evidence_record(
+                "morphology",
+                "phenotypic_activity",
+                {"map": act["map"], "p": act["p"], "active": act["active"]},
+                False,
+                f"compound is morphologically {'ACTIVE' if act['active'] else 'inactive'} "
+                f"(activity mAP {act['map']:.2f}, corrected p {act['p']:.4f}) - "
+                "so weak connectivity below is a real result, not a dead profile",
+            )
+        )
+
     # 1. Directional connectivity + sign pattern
     cos_orf = cosine(cpd, orf)
     cos_crispr = cosine(cpd, crispr)
@@ -661,9 +704,9 @@ def morphology_stream(inchikey, symbol, k_neighbors=5):
         )
     )
 
-    # 4. Phenotypic activity proxy (consensus L2 norm + percentile vs all genes)
+    # 4. Activity proxy for the gene perturbations (consensus L2 norm vs all genes)
     gene_norms = np.linalg.norm(mat, axis=1)
-    for label, vec in (("compound", cpd), ("gene_orf", orf), ("gene_crispr", crispr)):
+    for label, vec in (("gene_orf", orf), ("gene_crispr", crispr)):
         if vec is None:
             continue
         norm = float(np.linalg.norm(vec))
@@ -727,24 +770,24 @@ def depmap_stream(symbol, compound_name=None, prism_label=None):
 
     records = []
 
-    # Chronos dependency distribution. A pan-essential gene (very negative mean, low spread)
-    # is the same in nearly every line -> a near-flat profile DepMap cannot deconvolve. This
-    # record EXPLAINS a weak correlation rather than hiding it (the legibility payload).
+    # Chronos dependency distribution. A common-essential gene (mean dependency ~ -1, essential
+    # in nearly every line) offers little differential dependency to track drug sensitivity
+    # against. This record EXPLAINS a weak correlation rather than hiding it (legibility payload).
     gvals = np.array([v for v in gene.values() if v is not None], dtype=float)
     gvals = gvals[np.isfinite(gvals)]
     g_mean, g_std = float(gvals.mean()), float(gvals.std())
-    pan_essential = g_mean < -0.5 and g_std < 0.25
+    common_essential = g_mean < -0.5
     records.append(
         evidence_record(
             "depmap",
             "chronos_profile",
-            {"mean": g_mean, "std": g_std, "pan_essential": pan_essential},
+            {"mean": g_mean, "std": g_std, "common_essential": common_essential},
             False,
             f"{symbol} Chronos dependency: mean {g_mean:+.2f}, std {g_std:.2f} "
             f"across {gvals.size} lines"
             + (
-                "  [pan-essential - near-flat profile, little for cross-line deconvolution to grip]"
-                if pan_essential
+                "  [common-essential - essential across nearly all lines; little differential dependency to grip]"
+                if common_essential
                 else ""
             ),
         )
@@ -797,14 +840,16 @@ def depmap_stream(symbol, compound_name=None, prism_label=None):
                 "r": r,
                 "n_lines": len(g),
                 "prism_label": used,
-                "pan_essential": pan_essential,
+                "common_essential": common_essential,
                 "g": g.tolist(),
                 "d": d.tolist(),
             },
             False,
             f"Pearson r={r:+.3f} across {len(g)} cell lines "
             f"(PRISM '{used}' sensitivity vs Chronos {symbol} dependency)"
-            + ("  - weak, expected given pan-essentiality above" if pan_essential else ""),
+            + (
+                "  - weak, expected: common-essential gene (little differential dependency)" if common_essential else ""
+            ),
         )
     )
     return records
@@ -898,10 +943,10 @@ def provisional_call(records):
         if abs(dm["r"]) >= 0.2:
             score += 1.0
             grounds.append(f"DepMap PRISM/Chronos correlate (r={dm['r']:+.2f}, {dm['n_lines']} lines)")
-        elif dm.get("pan_essential"):
+        elif dm.get("common_essential"):
             grounds.append(
-                f"DepMap correlation weak (r={dm['r']:+.2f}) - gene is pan-essential, "
-                f"so the stream cannot deconvolve (not evidence against the pair)"
+                f"DepMap correlation weak (r={dm['r']:+.2f}) - gene is common-essential, "
+                "so this assay has little differential signal to deconvolve (not evidence against the pair)"
             )
         else:
             grounds.append(f"DepMap correlation weak (r={dm['r']:+.2f})")
@@ -926,8 +971,9 @@ def _(mo):
     here, an **auditable null**: it does *not* light up (weak morphology, weak DepMap), and the
     provisional call comes back "not supported." That is the point, not a bug. The loop names
     *why* the evidence is thin - JQ1's JUMP profile is **source-7-only** (the documented
-    batch-effect source) and **BRD4 is pan-essential**, so its near-flat Chronos profile gives
-    the deconvolution nothing to grip. The one-shot GNN emits a single scalar (compound AP
+    batch-effect source) and **BRD4 is common-essential** (knockout dependency ~-1 across nearly
+    all cell lines), so there is little differential dependency for the deconvolution to grip.
+    The one-shot GNN emits a single scalar (compound AP
     0.668) that can express none of that. **Decomposability - including honest "the evidence is
     thin, and here's exactly which part and why" - is the anti-one-shot argument.** The other
     pairs are GNN-missed genes (per-node AP ~0.01) shown for contrast. Depth over breadth.
@@ -989,8 +1035,10 @@ def _(mo, pair_dropdown, run_depmap):
                 return f"r={v['r']:+.3f}, n={v['n_lines']}"
             if "inhibitor_consistent" in v:
                 return f"ORF {v['orf']:+.2f} / CRISPR {v['crispr']:+.2f}"
-            if "pan_essential" in v and "mean" in v:
+            if "common_essential" in v and "mean" in v:
                 return f"mean {v['mean']:+.2f}, std {v['std']:.2f}"
+            if "map" in v and "active" in v:
+                return f"mAP {v['map']:.2f}, p {v['p']:.4f}"
             if "n_wells" in v:
                 return f"{v['n_wells']}w / {'+'.join(v['sources'])}"
             return str(v)
@@ -1108,11 +1156,11 @@ def _(mo):
     reason over evidence per pair, working back from the functional endpoint):
 
     - **Decomposability beats a green checkmark.** On BRD4/JQ1 the call is "not supported," yet
-      the loop says *why*: the compound IS morphologically active (high activity proxy) but its
-      profile is source-7-only, and the gene is pan-essential so DepMap has nothing to
-      deconvolve. "Active compound + pan-essential gene + cross-source caveat = the evidence is
-      genuinely thin, and here is which part" is a stronger argument than a confident scalar.
-      The GNN's 0.668 can express none of it.
+      the loop says *why*: the compound IS morphologically active (activity mAP ~1.0) but its
+      profile is source-7-only, and the gene is common-essential so DepMap has little
+      differential dependency to deconvolve. "Active compound + common-essential gene +
+      cross-source caveat = the evidence is genuinely thin, and here is which part" is a stronger
+      argument than a confident scalar. The GNN's 0.668 can express none of it.
     - **Evidence is externalized and sourced.** Each row names its `source` and whether it is
       `leaky` (label-bearing prior knowledge) or genuinely predictive. The call lists its
       grounds. A reader sees what it rests on - and where it is thin.
