@@ -3,18 +3,18 @@
 # dependencies = [
 #     "marimo",
 #     "duckdb",
-#     "pandas",
 #     "numpy",
+#     "pandas",
 #     "matplotlib",
+#     "requests",
 #     "python-dotenv",
 #     "loguru",
-#     "requests",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.23.8"
+__generated_with = "0.23.9"
 app = marimo.App(width="medium")
 
 with app.setup:
@@ -54,8 +54,7 @@ with app.setup:
     # Lazy cache for the all-gene consensus matrices (built once per modality).
     CONSENSUS_CACHE: dict = {}
 
-    # The single worked pair. (Narrated versions: nb45_ss_motive_evidence_slide.py /
-    # nb44_ss_motive_interaction_evidence.py.)
+    # The single question we present the agent.
     PAIR = {
         "symbol": "BRD4",
         "inchikey": "DNVXATUJJDPFDM-KRWDZBQOSA-N",
@@ -74,12 +73,301 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(
-        f"""
-        # Does {PAIR["compound_name"]} interact with {PAIR["symbol"]}?
+        rf"""
+    # Ask the apprentice: does {PAIR["compound_name"]} engage {PAIR["symbol"]}?
 
-        An agentic evidence check: instead of one model score, the loop fetches
-        predictive, non-leaky signals for this pair and lays out what each one says.
-        """
+    Two ways to answer this.
+
+    **f - the one-shot model.** A frozen GNN (MOTIVE) maps `(gene, compound) -> one scalar`.
+    All the compute was spent at training; you get a number with no account of itself.
+
+    **A - the apprentice.** *After* the question arrives, an agent goes out and gathers
+    evidence: it pulls the morphology, asks whether the compound is even active, checks an
+    orthogonal dependency assay, reads the literature, and lays out what each piece says -
+    then commits to a verdict you can audit and proposes what to measure next.
+
+    This notebook *is* A's worktable for one pair: it carries its own evidence streams and
+    works the question top to bottom. The bottom line, told up front: the predictive
+    evidence comes back **thin**, and the value is that the apprentice says exactly *which*
+    part is thin and *why* - which the scalar cannot.
+    """
+    )
+    return
+
+
+@app.cell
+def _():
+    import pandas as pd
+
+    sym, ik = PAIR["symbol"], PAIR["inchikey"]
+
+    # The apprentice goes and gets the evidence (each call is real work over JUMP / DepMap).
+    cpd_jcp = resolve_compound_jcp(ik)
+    records = morphology_stream(ik, sym)
+    records += depmap_stream(sym, PAIR["compound_name"], PAIR["prism_label"])
+
+    # Read the literature too - prior knowledge, so it is marked leaky=True and the
+    # verdict (predictive evidence only) does NOT get to lean on it.
+    records.append(
+        evidence_record(
+            "literature",
+            "bet_bromodomain",
+            "Kd ~50/90 nM (BD1/BD2)",
+            True,
+            "JQ1 is a selective BET bromodomain inhibitor; binds BRD4 BD1/BD2 at Kd ~50/90 nM "
+            "(Filippakopoulos et al., Nature 2010) - a real, high-affinity interaction",
+        )
+    )
+
+    baseline = motive_baseline(ik, sym)
+    call = provisional_call(records)
+
+    by = {r["signal"]: r for r in records}
+    cos_orf = by.get("cosine_orf", {}).get("value")
+    cos_crispr = by.get("cosine_crispr", {}).get("value")
+    _dm = by.get("prism_chronos_corr", {}).get("value")
+    dm_scatter = _dm if isinstance(_dm, dict) and "g" in _dm else None
+    return (
+        baseline,
+        by,
+        call,
+        cos_crispr,
+        cos_orf,
+        cpd_jcp,
+        dm_scatter,
+        pd,
+        records,
+    )
+
+
+@app.cell(hide_code=True)
+def _(by, cpd_jcp, mo):
+    _prov = by["compound_provenance"]["value"]
+    _src = ", ".join(f"{s} ({n} wells)" for s, n in _prov["sources"].items())
+    _flag = (
+        " **All from source 7** - JUMP's documented batch-effect source, so any cross-source comparison below is on thin ice."
+        if _prov["source7_only"]
+        else ""
+    )
+    mo.md(
+        rf"""
+    ### 1. Find the pair in the data
+
+    {PAIR["compound_name"]} resolves to `{cpd_jcp}`; {PAIR["symbol"]} has both an ORF
+    (over-expression) and a CRISPR (knockout) profile in JUMP. The compound profile is
+    **{_prov["n_wells"]} wells** from {_src}.{_flag}
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(by, mo):
+    _a = by["phenotypic_activity"]["value"]
+    mo.md(
+        rf"""
+    ### 2. Is the compound even doing anything?
+
+    Before trusting a weak connectivity, rule out a dead profile. {PAIR["compound_name"]} is
+    morphologically **{"active" if _a["active"] else "inactive"}** - activity mAP
+    **{_a["map"]:.2f}** (corrected p {_a["p"]:.4f}). So whatever the connectivity says, it is
+    a real measurement of a real phenotype, not noise.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(by, mo):
+    _co = by["cosine_orf"]["value"]
+    _cc = by["cosine_crispr"]["value"]
+    _sign = by["sign_pattern"]["value"]
+    _pct = by["percentile_rank_orf"]["value"]
+    mo.md(
+        rf"""
+    ### 3. Does the compound's morphology connect to the gene's?
+
+    Cosine of {PAIR["compound_name"]} against {PAIR["symbol"]} in the shared feature space:
+    **{_co:+.3f}** vs the ORF (over-expression) and **{_cc:+.3f}** vs the CRISPR (knockout).
+    An inhibitor should anti-correlate over-expression and correlate knockout; here the sign
+    pattern is **{"consistent" if _sign["inhibitor_consistent"] else "NOT inhibitor-consistent"}**.
+    And {PAIR["symbol"]} sits at only the **{_pct:.1f}th percentile** of this compound's
+    connectivity against all genes - middle of the pack. Morphology alone does not carry this pair.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(by, mo):
+    _ch = by["chronos_profile"]["value"]
+    _corr = by.get("prism_chronos_corr", {}).get("value")
+    _rtxt = (
+        f"Pearson r = **{_corr['r']:+.3f}** across {_corr['n_lines']} cell lines"
+        if isinstance(_corr, dict)
+        else "not available"
+    )
+    mo.md(
+        rf"""
+    ### 4. An orthogonal check: DepMap dependency deconvolution
+
+    Independent of morphology: do the cell lines whose growth depends on {PAIR["symbol"]}
+    (Chronos knockout) also respond to {PAIR["compound_name"]} (PRISM sensitivity)? {_rtxt} -
+    weak. The reason is legible: {PAIR["symbol"]}'s Chronos dependency is
+    **mean {_ch["mean"]:+.2f}, std {_ch["std"]:.2f}** - it is **common-essential** (nearly
+    every line needs it), so there is almost no line-to-line variation for a correlation to
+    grip. This assay is structurally blind here; that is not evidence against the pair.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(by, mo):
+    _lit = by["bet_bromodomain"]
+    mo.md(
+        rf"""
+    ### 5. What does the literature say?
+
+    {_lit["summary"]}. So the ground truth is that this interaction is **real and
+    high-affinity** - even though the two predictive streams above could not confirm it.
+    This row is marked `leaky = yes` (prior knowledge), so the verdict below is **not allowed
+    to count it** - it is here to calibrate, not to decide.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(baseline, mo):
+    _g = f"gene AP {baseline['gene_ap']:.3f} (degree {baseline['gene_npos']})" if "gene_ap" in baseline else "gene n/a"
+    _c = (
+        f"compound AP {baseline['compound_ap']:.3f} (degree {baseline['compound_npos']})"
+        if "compound_ap" in baseline
+        else "compound n/a"
+    )
+    mo.md(
+        rf"""
+    ### 6. The one-shot baseline, for contrast
+
+    What `f` hands you for this pair: {_c}; {_g}. Two numbers, and no account of any of the
+    six steps above - not the source-7 caveat, not the activity, not the common-essentiality.
+    That opacity is the thing the apprentice replaces.
+    """
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo, pd, records):
+    def _fmt(v):
+        if isinstance(v, dict):
+            if "r" in v:
+                return f"r={v['r']:+.3f}, n={v['n_lines']}"
+            if "inhibitor_consistent" in v:
+                return f"ORF {v['orf']:+.2f} / CRISPR {v['crispr']:+.2f}"
+            if "common_essential" in v and "mean" in v:
+                return f"mean {v['mean']:+.2f}, std {v['std']:.2f}"
+            if "map" in v and "active" in v:
+                return f"mAP {v['map']:.2f}, p {v['p']:.4f}"
+            if "n_wells" in v:
+                return f"{v['n_wells']}w / {'+'.join(v['sources'])}"
+            return str(v)
+        if isinstance(v, list):
+            return ", ".join(f"{s} {x:+.2f}" for s, x in v[:3])
+        if isinstance(v, float):
+            return f"{v:+.3f}"
+        return "-" if v is None else str(v)
+
+    _tbl = pd.DataFrame(
+        [
+            {
+                "stream": r["source"],
+                "signal": r["signal"],
+                "value": _fmt(r["value"]),
+                "leaky": "yes" if r["leaky"] else "no",
+                "summary": r["summary"],
+            }
+            for r in records
+        ]
+    )
+    mo.vstack(
+        [
+            mo.md("### The evidence the apprentice assembled"),
+            mo.ui.table(_tbl, selection=None, pagination=False),
+        ]
+    )
+    return
+
+
+@app.cell(hide_code=True)
+def _(cos_crispr, cos_orf, dm_scatter):
+    import matplotlib.pyplot as plt
+
+    _sym = PAIR["symbol"]
+    _fig, _axes = plt.subplots(1, 2, figsize=(10, 3.6), dpi=120)
+
+    _labels, _vals = [], []
+    if cos_orf is not None:
+        _labels.append("vs ORF\n(over-expr)")
+        _vals.append(cos_orf)
+    if cos_crispr is not None:
+        _labels.append("vs CRISPR\n(knockout)")
+        _vals.append(cos_crispr)
+    _ax = _axes[0]
+    if _vals:
+        _colors = ["#c0392b" if v < 0 else "#27ae60" for v in _vals]
+        _ax.barh(_labels, _vals, color=_colors)
+        _ax.axvline(0, color="k", lw=0.8)
+        _ax.set_xlabel("cosine (shared ALL/v1.0b space)")
+        _ax.set_title("Directional morphology connectivity")
+    else:
+        _ax.text(0.5, 0.5, "no gene profile", ha="center")
+        _ax.set_axis_off()
+
+    _ax2 = _axes[1]
+    if dm_scatter is not None:
+        _ax2.scatter(dm_scatter["g"], dm_scatter["d"], s=8, alpha=0.5, color="#2c3e50")
+        _ax2.set_xlabel(f"Chronos {_sym} dependency")
+        _ax2.set_ylabel(f"PRISM '{dm_scatter['prism_label']}' sensitivity")
+        _ax2.set_title(f"DepMap (r={dm_scatter['r']:+.2f}, n={dm_scatter['n_lines']})")
+    else:
+        _ax2.text(0.5, 0.5, "DepMap not fired", ha="center")
+        _ax2.set_axis_off()
+
+    _fig.suptitle(f"{_sym} / {PAIR['compound_name']}", fontsize=11)
+    _fig.tight_layout()
+    _fig
+    return
+
+
+@app.cell(hide_code=True)
+def _(call, mo):
+    _grounds = "\n".join(f"- {g}" for g in call["grounds"])
+    mo.md(
+        rf"""
+    ### The apprentice's answer
+
+    **Verdict: {call["call"]}** (confidence {call["confidence"]}, score {call["score"]:.1f} of 3,
+    predictive evidence only). It rests on:
+
+    {_grounds}
+
+    **Reconciling it.** The predictive streams are thin, yet the literature says the
+    interaction is real. The apprentice does not paper over that - it names the two reasons the
+    data is quiet: {PAIR["compound_name"]}'s JUMP profile is source-7-only (a batch-effect
+    source), and {PAIR["symbol"]} is common-essential, which blinds the DepMap deconvolution.
+    Active compound + blinded assays + a real but unconfirmed interaction is a *diagnosis*, not
+    a dead end. Score the reasoning, not the scalar.
+
+    **What to measure next.**
+    - Re-acquire {PAIR["compound_name"]}'s Cell Painting profile in one or two non-source-7
+      labs. If the weak ORF/CRISPR connectivity persists across sources, it is real biology; if
+      it strengthens, the source-7 batch effect was hiding the signal.
+    - Profile a {PAIR["symbol"]} degrader (e.g. dBET6) alongside the CRISPR knockout. A degrader
+      gives a cleaner loss-of-function morphology, so the inhibitor sign test (anti-correlate
+      over-expression, correlate knockdown) actually becomes decisive for this pair.
+    """
     )
     return
 
@@ -603,131 +891,6 @@ def provisional_call(records):
     else:
         call, conf = "not supported by predictive evidence", "low"
     return {"call": call, "confidence": conf, "score": score, "grounds": grounds}
-
-
-@app.cell
-def _():
-    import pandas as pd
-
-    _sym, _ik = PAIR["symbol"], PAIR["inchikey"]
-
-    records = morphology_stream(_ik, _sym)
-    records += depmap_stream(_sym, PAIR["compound_name"], PAIR["prism_label"])
-
-    baseline = motive_baseline(_ik, _sym)
-    call = provisional_call(records)
-
-    # cosines + DepMap scatter for the figure (computed once, here)
-    _by = {(r["source"], r["signal"]): r["value"] for r in records}
-    cos_orf = _by.get(("morphology", "cosine_orf"))
-    cos_crispr = _by.get(("morphology", "cosine_crispr"))
-    dm_scatter = _by.get(("depmap", "prism_chronos_corr"))
-    if not isinstance(dm_scatter, dict) or "g" not in dm_scatter:
-        dm_scatter = None
-    return baseline, call, cos_crispr, cos_orf, dm_scatter, pd, records
-
-
-@app.cell(hide_code=True)
-def _(baseline, call, mo, pd, records):
-    def _fmt(v):
-        if isinstance(v, dict):
-            if "r" in v:
-                return f"r={v['r']:+.3f}, n={v['n_lines']}"
-            if "inhibitor_consistent" in v:
-                return f"ORF {v['orf']:+.2f} / CRISPR {v['crispr']:+.2f}"
-            if "common_essential" in v and "mean" in v:
-                return f"mean {v['mean']:+.2f}, std {v['std']:.2f}"
-            if "map" in v and "active" in v:
-                return f"mAP {v['map']:.2f}, p {v['p']:.4f}"
-            if "n_wells" in v:
-                return f"{v['n_wells']}w / {'+'.join(v['sources'])}"
-            return str(v)
-        if isinstance(v, list):
-            return ", ".join(f"{s} {x:+.2f}" for s, x in v[:3])
-        if isinstance(v, float):
-            return f"{v:+.3f}"
-        return "-" if v is None else str(v)
-
-    _tbl = pd.DataFrame(
-        [
-            {
-                "stream": r["source"],
-                "signal": r["signal"],
-                "value": _fmt(r["value"]),
-                "leaky": "yes" if r["leaky"] else "no",
-                "summary": r["summary"],
-            }
-            for r in records
-        ]
-    )
-
-    _gnn = "n/a"
-    if baseline:
-        _parts = []
-        if "compound_ap" in baseline:
-            _parts.append(f"compound AP {baseline['compound_ap']:.3f} (deg {baseline['compound_npos']})")
-        if "gene_ap" in baseline:
-            _parts.append(f"gene AP {baseline['gene_ap']:.3f} (deg {baseline['gene_npos']})")
-        _gnn = "; ".join(_parts)
-
-    _grounds_md = "\n".join(f"- {g}" for g in call["grounds"])
-    _answer = mo.md(
-        f"""
-        ## Verdict: {call["call"]}
-
-        Confidence {call["confidence"]} (score {call["score"]:.1f} of 3). Here is what each
-        predictive evidence stream says:
-
-        {_grounds_md}
-
-        For reference, the one-shot MOTIVE GNN gives only: {_gnn}.
-        """
-    )
-    mo.vstack([_answer, mo.ui.table(_tbl, selection=None, pagination=False)])
-    return
-
-
-@app.cell(hide_code=True)
-def _(cos_crispr, cos_orf, dm_scatter):
-    import matplotlib.pyplot as plt
-
-    _sym = PAIR["symbol"]
-    _fig, _axes = plt.subplots(1, 2, figsize=(10, 3.6), dpi=120)
-
-    # left: directional cosines
-    _labels, _vals = [], []
-    if cos_orf is not None:
-        _labels.append("vs ORF\n(over-expr)")
-        _vals.append(cos_orf)
-    if cos_crispr is not None:
-        _labels.append("vs CRISPR\n(knockout)")
-        _vals.append(cos_crispr)
-    _ax = _axes[0]
-    if _vals:
-        _colors = ["#c0392b" if v < 0 else "#27ae60" for v in _vals]
-        _ax.barh(_labels, _vals, color=_colors)
-        _ax.axvline(0, color="k", lw=0.8)
-        _ax.set_xlabel("cosine (shared ALL/v1.0b space)")
-        _ax.set_title("Directional morphology connectivity")
-    else:
-        _ax.text(0.5, 0.5, "no gene profile", ha="center")
-        _ax.set_axis_off()
-
-    # right: PRISM vs Chronos scatter
-    _ax2 = _axes[1]
-    if dm_scatter is not None:
-        _ax2.scatter(dm_scatter["g"], dm_scatter["d"], s=8, alpha=0.5, color="#2c3e50")
-        _ax2.set_xlabel(f"Chronos {_sym} dependency")
-        _ax2.set_ylabel(f"PRISM '{dm_scatter['prism_label']}' sensitivity")
-        _ax2.set_title(f"DepMap (r={dm_scatter['r']:+.2f}, n={dm_scatter['n_lines']})")
-    else:
-        _ax2.text(0.5, 0.5, "DepMap not fired", ha="center")
-        _ax2.set_axis_off()
-
-    _fig.suptitle(f"{_sym} / {PAIR['compound_name']}", fontsize=11)
-    _fig.tight_layout()
-    _fig
-    return
 
 
 if __name__ == "__main__":
