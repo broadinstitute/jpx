@@ -1,8 +1,7 @@
 # AGENTS.md - jpx
 
-This repo was created as an orphan commit from `broadinstitute/jump_production` branch `marimo-redun-migration` (commit `ad21c1d`, 2026-05-25).
-The full development history lives in jump_production.
-Notebooks and scripts in jump_production may receive updates that should be ported here - check `broadinstitute/jump_production` for upstream changes to `notebooks/`, `workflow.py`, or `configs/`.
+This repo was created as an orphan commit from `broadinstitute/jump_production` branch `marimo-redun-migration` (commit `ad21c1d`, 2026-05-25); that earlier history lives in jump_production.
+jpx is now self-sustaining and is the canonical home of the marimo catalog and redun pipeline - the `notebooks/nb*` catalog and `workflow.py` have been removed from jump_production, so there is no longer an upstream to port from.
 
 Project-specific guidance for agents working in this repository.
 This is the production pipeline and analysis catalog for JUMP Cell Painting data.
