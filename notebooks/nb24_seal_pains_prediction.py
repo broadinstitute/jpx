@@ -55,7 +55,7 @@ with app.setup:
     from nb03_ss_profiles import load_profiles
 
     # Pre-Harmony parquet retains original CellProfiler feature names
-    FEATSELECT_URL = "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect.parquet"
+    FEATSELECT_URL = "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect.parquet"
 
     OUTPUT_DIR = PROCESSED_DATA_DIR / "pains-prediction"
     N_FOLDS = 5
