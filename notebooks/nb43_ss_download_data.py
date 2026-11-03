@@ -123,38 +123,38 @@ with app.setup:
     MANUAL_FILES: list[str] = []
 
     PROFILE_FILES = {
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound/v1.0/profiles_var_mad_int_featselect_harmony.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/COMPOUND/v1.0a/profiles_var_mad_int_featselect_harmony.parquet": (
             "compound.parquet",
             "85c2af21852866418d9cacbf7483c98d93001e3818b8527e810381ce6894735f",
         ),
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect_harmony.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect_harmony.parquet": (
             "compound_no_source7.parquet",
             "8e1e5d9e50c8c7c95ed406981b02adb57c7ff9d253192ed52e661115379be6f1",
         ),
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN/v1.0/profiles_dropna_var_mad_int_featselect_harmony.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN/v1.0/profiles_dropna_var_mad_int_featselect_harmony.parquet": (
             "compound_DL_CPCNN.parquet",
             "3fbf22bb0a8f45aefb924ce024f6b3abf64e33f4b1dc17a6ef916a2534e966bc",
         ),
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN_no_source7/v1.0/profiles_dropna_var_mad_int_featselect_harmony.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN_no_source7/v1.0/profiles_dropna_var_mad_int_featselect_harmony.parquet": (
             "compound_DL_CPCNN_no_source7.parquet",
             "da9485973e74e22d22f48239ede414fe872efb53fab28aa4eb1e17022a062b00",
         ),
     }
 
     PRE_HARMONY_FILES = {
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_no_source7/v1.0/profiles_var_mad_int_featselect.parquet": (
             "compound_no_source7_pre_harmony.parquet",
             "30655596ee3b6b06ce18a13342f429249dbd7b2351ea0649609384721571d02b",
         ),
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN_no_source7/v1.0/profiles_dropna_var_mad_int_featselect.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN_no_source7/v1.0/profiles_dropna_var_mad_int_featselect.parquet": (
             "compound_DL_CPCNN_no_source7_pre_harmony.parquet",
             "f0ac49023c6c21e94352e468806e8edd2e4a3e93a403c60fa10dbf009b68e4a3",
         ),
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound/v1.0/profiles_var_mad_int_featselect.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/COMPOUND/v1.0a/profiles_var_mad_int_featselect.parquet": (
             "compound_pre_harmony.parquet",
             "9ee4862e8bfc9b08ba5d8675f50cd224f7a4d1ec83848b9fe4396224960b2936",
         ),
-        "https://cellpainting-gallery.s3.amazonaws.com/cpg0042-chandrasekaran-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN/v1.0/profiles_dropna_var_mad_int_featselect.parquet": (
+        "https://cellpainting-gallery.s3.amazonaws.com/cpg0016-jump/source_all/workspace/profiles_assembled/compound_DL_CPCNN/v1.0/profiles_dropna_var_mad_int_featselect.parquet": (
             "compound_DL_CPCNN_pre_harmony.parquet",
             "843fabab93495e69c22bd7e52102a9c70212e7e099a4c008f4f9c3d740b15f70",
         ),
